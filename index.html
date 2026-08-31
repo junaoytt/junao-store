@@ -4581,6 +4581,29 @@ const PERM_PADRAO={orcamentos:true,funil:true,clientes:true,valores:false,
    saber quem é você antes de entregar qualquer dado.
    ============================================================ */
 let temDono = false;
+let bootstrapDono = null;
+const EMAIL_DONO_PADRAO = "junaoyt@gmail.com";
+
+async function garantirDonoPadrao(){
+  try{
+    const r=await fetch("/api/bootstrap-owner",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:"{}"
+    });
+    const j=await r.json().catch(()=>({}));
+    bootstrapDono=Object.assign({httpOk:r.ok},j||{});
+    return bootstrapDono;
+  }catch(e){
+    bootstrapDono={ok:false,pronto:false,motivo:"sem_conexao"};
+    return bootstrapDono;
+  }
+}
+
+function emailLoginInicial(){
+  try{ return localStorage.getItem("junao_ultimo_email") || EMAIL_DONO_PADRAO; }
+  catch(e){ return EMAIL_DONO_PADRAO; }
+}
 
 function perfilParaUsuario(l){
   if(!l) return null;
@@ -4680,6 +4703,12 @@ function renderPortao(){
     return;
   }
 
+  if(porta==="colab-login"){
+    el.innerHTML=`<div class="portao">${htmlLoginColab()}</div>`;
+    ligarLoginColab(el);
+    return;
+  }
+
   if(porta==="colab"){
     const primeiro = !temDono;
     el.innerHTML=`<div class="portao">${primeiro?htmlPrimeiroAcesso():htmlLoginColab()}</div>`;
@@ -4738,11 +4767,18 @@ function htmlPrimeiroAcesso(){
     <div class="field"><label class="eyebrow">Repita a senha</label><input type="password" id="cSenha2" class="mono" autocomplete="new-password"></div>
     <button class="btn btn-primary btn-wide" id="cCriar" style="margin-top:6px">Criar acesso</button>
     <p class="help">Esta conta manda no painel inteiro e é a única que libera acesso pros outros.</p>
+    <div style="height:1px;background:var(--line);margin:20px 0 16px"></div>
+    <button class="btn btn-wide" id="cJaTenho">Já tenho cadastro — Entrar</button>
+    <p class="help">Se a conta já foi criada, não precisa cadastrar de novo. Entre com e-mail e senha.</p>
   </div>`;
 }
 function ligarPrimeiroAcesso(el){
   const v=el.querySelector("[data-voltar-portao]");
   if(v) v.onclick=()=>{porta=null;render();};
+  const ja=el.querySelector("#cJaTenho");
+  if(ja) ja.onclick=()=>{porta="colab-login";render();};
+  const emailPadrao=el.querySelector("#cEmail2");
+  if(emailPadrao && !emailPadrao.value) emailPadrao.value=EMAIL_DONO_PADRAO;
   const b=el.querySelector("#cCriar"); if(!b) return;
   const erro=m=>{const e=el.querySelector("#cErr");e.textContent=m;e.classList.add("on");
     b.disabled=false;b.textContent="Criar acesso";};
@@ -4755,10 +4791,17 @@ function ligarPrimeiroAcesso(el){
     if(s1.length<6) return erro("A senha precisa de pelo menos 6 caracteres.");
     if(s1!==s2) return erro("As duas senhas não são iguais.");
     b.disabled=true; b.textContent="Criando...";
-    const {data,error}=await SB.cli.auth.signUp({email,password:s1});
+    const {data,error}=await SB.cli.auth.signUp({
+      email,
+      password:s1,
+      options:{
+        emailRedirectTo: location.origin + location.pathname,
+        data:{ nome }
+      }
+    });
     if(error) return erro(traduzAuth(error));
     if(!data||!data.session)
-      return erro("Conta criada. Confirme o e-mail que chegou e depois entre normalmente.");
+      return erro("Conta criada. Confirme o e-mail que chegou. Depois da confirmação, você volta automaticamente para este site.");
     const r=await SB.cli.rpc("criar_dono",{p_nome:nome});
     if(r.error){ try{await SB.cli.auth.signOut();}catch(e){} return erro(traduzAuth(r.error)); }
     usuario=perfilParaUsuario(r.data); temDono=true;
@@ -4779,7 +4822,7 @@ function htmlLoginColab(){
     <button class="btn btn-ghost btn-sm voltar" data-voltar-portao>← Outro tipo de acesso</button>
     <div class="err" id="lErr"></div>
     <div class="field"><label class="eyebrow">E-mail</label>
-      <input type="text" id="lEmail" class="mono big" placeholder="voce@email.com" autocomplete="username"></div>
+      <input type="text" id="lEmail" class="mono big" value="${esc(emailLoginInicial())}" placeholder="voce@email.com" autocomplete="username"></div>
     <div class="field"><label class="eyebrow">Senha</label>
       <input type="password" id="lSenha" class="mono big" autocomplete="current-password"></div>
     <button class="btn btn-primary btn-wide" id="lEntrar" style="margin-top:6px">Entrar</button>
@@ -4803,6 +4846,7 @@ function ligarLoginColab(el){
     if(!u){ try{await SB.cli.auth.signOut();}catch(e){}
       return erro("Este acesso foi desativado. Fale com o dono do painel."); }
     usuario=u;
+    try{ localStorage.setItem("junao_ultimo_email",email); }catch(e){}
     await carregarTudo();
     porta=null; sel=null; vista=pode("valores")?"visao":"pedidos";
     if(pedidos.length){ sel=pedidos[pedidos.length-1].id; await carregarAnexos(sel); }
@@ -4829,7 +4873,7 @@ function htmlRecuperar(){
   </div>`;
 }
 function ligarRecuperar(el){
-  el.querySelector("[data-voltar-portao]").onclick=()=>{porta="colab";render();};
+  el.querySelector("[data-voltar-portao]").onclick=()=>{porta="colab-login";render();};
   const b=el.querySelector("#rTrocar");
   const erro=m=>{const e=el.querySelector("#rErr");e.textContent=m;e.classList.add("on");
     b.disabled=false;b.textContent="Mandar o link";};
@@ -4840,7 +4884,7 @@ function ligarRecuperar(el){
     const {error}=await SB.cli.auth.resetPasswordForEmail(email,
       {redirectTo:location.origin+location.pathname});
     if(error) return erro(traduzAuth(error));
-    porta="colab"; render();
+    porta="colab-login"; render();
     aviso("Link mandado. Confira o seu e-mail (olhe o spam também).");
   };
   setTimeout(()=>el.querySelector("#rEmail")?.focus(),40);
@@ -5160,6 +5204,10 @@ $("#btnLimpar").onclick=async()=>{
    ============================================================ */
 (async function(){
   await iniciarSupabase();
+
+  // Prepara a conta principal configurada no servidor. Como a senha fica em
+  // OWNER_PASSWORD na Vercel, ela nunca aparece no HTML nem no navegador.
+  await garantirDonoPadrao();
   temDono = await checarDono();
 
   // se a pessoa chegou pelo link de "esqueci a senha"
@@ -5173,6 +5221,18 @@ $("#btnLimpar").onclick=async()=>{
     porta="novasenha";
   }else if(session){
     usuario = await carregarPerfil(session.user.id);
+
+    // Se esta é a confirmação por e-mail da PRIMEIRA conta, o Auth já criou
+    // a sessão, mas o perfil de dono ainda não existe. Finaliza a criação aqui.
+    if(!usuario && !temDono){
+      const nomePendente = String(session.user?.user_metadata?.nome || "Dono").trim() || "Dono";
+      const rDono = await SB.cli.rpc("criar_dono", {p_nome:nomePendente});
+      if(!rDono.error && rDono.data){
+        usuario = perfilParaUsuario(rDono.data);
+        temDono = true;
+      }
+    }
+
     if(!usuario){ try{await SB.cli.auth.signOut();}catch(e){} }
   }
 

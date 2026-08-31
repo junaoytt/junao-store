@@ -31,9 +31,9 @@ funções da área do cliente e a pasta de imagens foram criadas de uma vez.
 
 Ainda no Supabase, vá em **Authentication → Sign In / Providers → Email**:
 
-- **Confirm email**: deixe **desligado**. Assim você cria sua conta e já entra.
-  (Se preferir manter ligado, funciona igual — só que você precisa clicar no link
-  do e-mail antes de conseguir entrar na primeira vez.)
+- **Confirm email**: pode ficar ligado ou desligado para colaboradores criados pelo
+  fluxo normal. A conta principal automática do dono é criada pelo servidor já
+  confirmada, então ela não depende do link de confirmação por e-mail.
 
 ## Passo 4 — Pegar as três chaves
 
@@ -63,8 +63,15 @@ Vá em **Project Settings → API Keys** e anote:
    | `SUPABASE_URL` | o Project URL do passo 4 |
    | `SUPABASE_ANON_KEY` | a chave **anon public** |
    | `SUPABASE_SERVICE_ROLE_KEY` | a chave **service_role** |
+   | `OWNER_EMAIL` | `junaoyt@gmail.com` |
+   | `OWNER_NAME` | `JunãoYT` |
+   | `OWNER_PASSWORD` | a senha principal do dono (somente na Vercel) |
 
 5. **Deploy**.
+
+> A senha do dono não fica no HTML e não deve ser commitada no GitHub. O endpoint
+> `/api/bootstrap-owner` lê `OWNER_PASSWORD` somente no servidor, cria/confirma a
+> conta no Supabase Auth e grava `public.perfis.papel = 'dono'` automaticamente.
 
 **Pelo terminal:** instale o `vercel` (`npm i -g vercel`), rode `vercel` dentro
 desta pasta e depois cadastre as três variáveis com `vercel env add`.
@@ -72,15 +79,24 @@ desta pasta e depois cadastre as três variáveis com `vercel env add`.
 > Se subir sem as variáveis, o site abre com um aviso avisando exatamente isso.
 > Cadastre as chaves e vá em **Deployments → ... → Redeploy**.
 
-## Passo 6 — Criar a sua conta
+## Passo 6 — Entrar com a conta principal
+
+Com `OWNER_PASSWORD` configurada na Vercel, a primeira abertura do site chama
+`/api/bootstrap-owner` e prepara automaticamente a conta principal do dono no
+Supabase Auth. O e-mail já vem configurado como `junaoyt@gmail.com` e o perfil é
+marcado como **dono**, ativo e com acesso total.
 
 1. Abra o endereço que a Vercel te deu.
-2. Clique em **Colaborador → Criar o primeiro acesso**.
-3. Preencha nome, e-mail e senha. Essa conta vira o **dono** do painel.
+2. Clique em **Colaborador**.
+3. Entre com o e-mail principal e a senha que você colocou em `OWNER_PASSWORD`.
 
-Depois disso, volte no Supabase em **Authentication → Sign In / Providers → Email**
-e **desligue "Allow new users to sign up"**. Assim ninguém cria conta sozinho —
-daí pra frente só você cria acesso, dentro do painel em *Quem tem acesso*.
+A tela de primeiro acesso continua existindo como plano B e agora também tem o
+botão **Já tenho cadastro — Entrar**, para você não ficar preso na tela de criação.
+
+Depois que a conta principal estiver funcionando, você pode voltar no Supabase em
+**Authentication → Sign In / Providers → Email** e desligar **Allow new users to
+sign up**. Daí pra frente, novos colaboradores são criados somente pelo dono em
+*Quem tem acesso*.
 
 ---
 
@@ -164,3 +180,13 @@ vercel dev
 
 Abrir o `index.html` com dois cliques **não funciona** — ele precisa do
 `/api/config` pra saber o endereço do banco.
+
+## Confirmação de e-mail / URL de retorno
+
+No Supabase, em Authentication > URL Configuration, use a URL publicada como Site URL:
+`https://junao-store.vercel.app`
+
+e adicione em Redirect URLs:
+`https://junao-store.vercel.app/**`
+
+O `index.html` desta versão também envia `emailRedirectTo` no cadastro e conclui a criação do perfil de dono depois que o usuário volta do link de confirmação.
