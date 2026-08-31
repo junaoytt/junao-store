@@ -190,3 +190,15 @@ e adicione em Redirect URLs:
 `https://junao-store.vercel.app/**`
 
 O `index.html` desta versão também envia `emailRedirectTo` no cadastro e conclui a criação do perfil de dono depois que o usuário volta do link de confirmação.
+
+## Suporte em tempo real
+
+Esta versão inclui um sistema de atendimento entre cliente e colaborador:
+
+- **Cliente:** abre um ticket pela Área do Cliente e conversa pelo chat sem sair do pedido.
+- **Colaborador:** usa a nova aba **Suporte** para ver a fila, responder, acompanhar mensagens não lidas e alterar o status.
+- **Histórico:** todas as mensagens ficam persistidas no Supabase.
+- **Tempo real:** mensagens e alterações são entregues por Supabase Realtime.
+- **Segurança:** clientes acessam apenas tickets vinculados ao próprio Discord + código; colaboradores usam a sessão autenticada do painel.
+
+No projeto Supabase atual, a estrutura do suporte já foi aplicada. Ao instalar este projeto em outro Supabase, execute `supabase/suporte-realtime.sql` depois do `supabase/schema.sql`.

@@ -821,6 +821,44 @@ input[type=number]{-moz-appearance:textfield}
   .userchip .who{display:none}
 }
 
+
+/* ============================================================
+   SUPORTE / TICKETS + CHAT
+   ============================================================ */
+.support-grid{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:12px;min-height:620px}
+.support-list,.support-chat{border:1px solid var(--line);border-radius:var(--r);background:var(--ink2);overflow:hidden}
+.support-list-head,.support-chat-head{padding:15px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;justify-content:space-between}
+.support-list-head .t,.support-chat-head .t{font-family:"Archivo",sans-serif;font-weight:700;font-size:16px}
+.support-list-body{max-height:570px;overflow:auto;padding:7px}
+.support-ticket{width:100%;text-align:left;background:transparent;border:1px solid transparent;border-radius:10px;padding:12px;color:var(--text);cursor:pointer;margin-bottom:4px}
+.support-ticket:hover{background:rgba(255,255,255,.025);border-color:var(--line)}
+.support-ticket.on{background:rgba(215,175,92,.07);border-color:rgba(215,175,92,.32)}
+.support-ticket .row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.support-ticket .assunto{font-weight:650;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+.support-ticket .meta{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--dim);margin-top:5px;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.support-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 6px;border-radius:999px;background:var(--gold);color:#17130b;font:700 10px "IBM Plex Mono",monospace}
+.support-status{display:inline-flex;padding:3px 7px;border-radius:999px;border:1px solid var(--line2);font:600 9px "IBM Plex Mono",monospace;text-transform:uppercase;letter-spacing:.07em;color:var(--dim)}
+.support-status.aberto{color:#f1c96d;border-color:rgba(241,201,109,.35)}
+.support-status.em_atendimento{color:#74c4ff;border-color:rgba(116,196,255,.35)}
+.support-status.aguardando_cliente{color:#c7a9ff;border-color:rgba(199,169,255,.35)}
+.support-status.fechado{color:#7f8a92}
+.support-chat{display:flex;flex-direction:column;min-width:0}
+.support-messages{height:475px;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:10px;background:rgba(0,0,0,.08)}
+.support-msg{display:flex;flex-direction:column;max-width:min(78%,650px)}
+.support-msg.cliente{align-self:flex-start}.support-msg.colaborador{align-self:flex-end}.support-msg.sistema{align-self:center;max-width:90%}
+.support-msg .bubble{border:1px solid var(--line);background:var(--ink3);border-radius:13px;padding:10px 12px;white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.5}
+.support-msg.colaborador .bubble{border-color:rgba(215,175,92,.32);background:rgba(215,175,92,.07)}
+.support-msg .mmeta{font:9.5px "IBM Plex Mono",monospace;color:var(--dim);margin:4px 4px 0}
+.support-msg.colaborador .mmeta{text-align:right}
+.support-compose{padding:12px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:flex-end}
+.support-compose textarea{min-height:44px;max-height:130px;resize:vertical;flex:1}
+.support-empty{display:grid;place-items:center;min-height:560px;color:var(--dim);text-align:center;padding:30px}
+.support-client-btn{position:fixed;right:22px;bottom:22px;z-index:70;border-radius:999px;box-shadow:0 12px 38px rgba(0,0,0,.35)}
+.support-client-panel{position:fixed;right:22px;bottom:78px;z-index:75;width:min(430px,calc(100vw - 28px));height:min(650px,calc(100vh - 115px));border:1px solid var(--line2);border-radius:16px;background:var(--ink);box-shadow:0 22px 80px rgba(0,0,0,.55);display:flex;flex-direction:column;overflow:hidden}
+.support-client-panel[hidden]{display:none}.support-client-panel .scp-head{padding:14px 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}.support-client-panel .scp-body{flex:1;min-height:0;overflow:auto;padding:12px}.support-client-panel .support-messages{height:100%;min-height:300px}.support-new textarea{min-height:110px}
+@media(max-width:850px){.support-grid{grid-template-columns:1fr}.support-list-body{max-height:260px}.support-messages{height:420px}.support-empty{min-height:300px}}
+@media(max-width:540px){.support-client-btn{right:14px;bottom:14px}.support-client-panel{right:14px;bottom:68px;height:calc(100vh - 90px)}.support-msg{max-width:90%}}
+
 </style>
 
 <div class="shell">
@@ -854,6 +892,7 @@ input[type=number]{-moz-appearance:textfield}
   <div class="wide" id="viewClientes" hidden></div>
   <div class="wide" id="viewFinanceiro" hidden></div>
   <div class="wide" id="viewRelatorios" hidden></div>
+  <div class="wide" id="viewSuporte" hidden></div>
   <div class="wide" id="viewArea" hidden></div>
 </div>
 
@@ -3870,7 +3909,7 @@ function renderRelatorios(){
    ============================================================ */
 const VISTAS=[
   ["visao","Visão"],["orcamentos","Orçamentos"],["pedidos","Pedidos"],["funil","Funil"],
-  ["clientes","Clientes"],["financeiro","Financeiro"],["relatorios","Relatórios"]
+  ["clientes","Clientes"],["financeiro","Financeiro"],["relatorios","Relatórios"],["suporte","Suporte"]
 ];
 function renderBar(){
   const bar=$("#bar");
@@ -3915,7 +3954,7 @@ function renderBar(){
 function render(){
   renderBar();
   const mapa={visao:"viewVisao",orcamentos:"viewOrcamentos",pedidos:"viewPedidos",funil:"viewFunil",
-              clientes:"viewClientes",financeiro:"viewFinanceiro",relatorios:"viewRelatorios"};
+              clientes:"viewClientes",financeiro:"viewFinanceiro",relatorios:"viewRelatorios",suporte:"viewSuporte"};
   for(const k in mapa) $("#"+mapa[k]).hidden = !(modo==="painel"&&vista===k);
   $("#viewArea").hidden = modo!=="cliente";
   if(modo==="cliente"){ renderArea(); return; }
@@ -4958,7 +4997,7 @@ function setModo(m){ modo=m; atualizarCabecalho(); document.body.classList.remov
    NAVEGAÇÃO COM PERMISSÃO
    ============================================================ */
 const VISTAS_PERM={visao:"valores",orcamentos:"orcamentos",pedidos:"pedidos",funil:"funil",
-                   clientes:"clientes",financeiro:"financeiro",relatorios:"relatorios"};
+                   clientes:"clientes",financeiro:"financeiro",relatorios:"relatorios",suporte:"pedidos"};
 const vistasLiberadas=()=>VISTAS.filter(([k])=>pode(VISTAS_PERM[k]));
 
 function renderBar(){
@@ -4969,7 +5008,8 @@ function renderBar(){
   if(!libs.some(([k])=>k===vista)) vista=libs.length?libs[0][0]:"pedidos";
   const cont={visao:0,orcamentos:orcamentos.filter(o=>o.status==="enviado"||o.status==="rascunho").length,
     pedidos:pedidos.length,funil:leads.filter(l=>l.etapa!=="ganho").length,
-    clientes:clientes.length,financeiro:pedidos.filter(p=>aReceber(p)>0.01).length,relatorios:0};
+    clientes:clientes.length,financeiro:pedidos.filter(p=>aReceber(p)>0.01).length,relatorios:0,
+    suporte:(typeof suporteTickets!=="undefined"?suporteTickets.reduce((n,t)=>n+(t.nao_lidas_equipe||0),0):0)};
   bar.innerHTML =
     libs.map(([k,t])=>`<button class="navtab" data-v="${k}" aria-pressed="${vista===k}">${t}${cont[k]?`<b>${cont[k]}</b>`:""}</button>`).join("")
     + `<span class="div"></span>` +
@@ -5015,7 +5055,7 @@ function render(){
   if(modo==="portao"){ renderPortao(); return; }
   if(modo==="cliente"){ renderArea(); return; }
   ({visao:renderVisao, orcamentos:renderOrcamentos, funil:renderFunil, clientes:renderClientes,
-    financeiro:renderFinanceiro, relatorios:renderRelatorios,
+    financeiro:renderFinanceiro, relatorios:renderRelatorios, suporte:renderSuporte,
     pedidos:()=>{renderLista();renderDetalhe();}}[vista]||(()=>{renderLista();renderDetalhe();}))();
 }
 
@@ -5190,6 +5230,192 @@ $("#btnLimpar").onclick=async()=>{
   $("#veilAjustes").hidden=true;
   vista="visao"; render(); aviso("Painel zerado");
 };
+
+
+/* ============================================================
+   SUPORTE — TICKET QUE VIRA CHAT AO VIVO
+   ============================================================ */
+let suporteTickets=[], suporteSel=null, suporteMensagens=[];
+let suporteCarregado=false, suporteCarregando=false, suporteListaCanal=null, suporteChatCanal=null;
+let suporteClienteAberto=false, suporteClienteSel=null, suporteClienteTickets=[], suporteClienteMensagens=[];
+let suporteClienteCanal=null, suporteClienteTela="lista";
+
+const suporteStatusRotulo=s=>({aberto:"Aberto",em_atendimento:"Em atendimento",aguardando_cliente:"Aguardando cliente",fechado:"Fechado"}[s]||s);
+const suporteData=x=>{try{return new Intl.DateTimeFormat("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date(x));}catch(e){return "";}};
+const suporteStatusHtml=s=>`<span class="support-status ${esc(s)}">${esc(suporteStatusRotulo(s))}</span>`;
+
+async function suporteCarregarEquipe(forcar=false){
+  if(!SB.cli||!usuario) return;
+  if(suporteCarregando || (suporteCarregado&&!forcar)) return;
+  suporteCarregando=true;
+  const {data,error}=await SB.cli.from("suporte_tickets").select("id,numero,discord,cliente_nome,assunto,pedido_id,status,prioridade,responsavel_id,realtime_token,nao_lidas_equipe,nao_lidas_cliente,criado_em,atualizado_em,ultima_mensagem_em").order("ultima_mensagem_em",{ascending:false}).limit(250);
+  suporteCarregando=false;
+  if(error){console.error("suporte tickets",error);aviso("Não deu pra carregar o suporte");return;}
+  suporteTickets=data||[]; suporteCarregado=true;
+  if(suporteSel&&!suporteTickets.some(t=>t.id===suporteSel)) suporteSel=null;
+  if(!suporteSel&&suporteTickets.length) suporteSel=suporteTickets[0].id;
+  suporteAssinarListaEquipe();
+}
+function suporteAssinarListaEquipe(){
+  if(suporteListaCanal||!SB.cli||!usuario)return;
+  suporteListaCanal=SB.cli.channel("suporte-fila-"+usuario.id)
+    .on("postgres_changes",{event:"*",schema:"public",table:"suporte_tickets"},async()=>{
+      await suporteCarregarEquipe(true); if(modo==="painel"&&vista==="suporte") renderSuporte(); else renderBar();
+    }).subscribe();
+}
+async function suporteCarregarMensagensEquipe(ticket){
+  if(!ticket)return;
+  const {data,error}=await SB.cli.from("suporte_mensagens").select("id,ticket_id,autor_tipo,autor_nome,mensagem,criado_em").eq("ticket_id",ticket.id).order("criado_em",{ascending:true}).order("id",{ascending:true});
+  if(error){console.error(error);return aviso("Não deu pra carregar as mensagens");}
+  suporteMensagens=data||[];
+  await SB.cli.rpc("suporte_marcar_lido",{p_ticket_id:ticket.id,p_discord:null,p_codigo:null});
+  ticket.nao_lidas_equipe=0;
+  suporteAssinarChatEquipe(ticket);
+}
+function suporteAssinarChatEquipe(ticket){
+  if(!SB.cli||!ticket)return;
+  if(suporteChatCanal){SB.cli.removeChannel(suporteChatCanal);suporteChatCanal=null;}
+  suporteChatCanal=SB.cli.channel("suporte:"+ticket.realtime_token,{config:{broadcast:{self:false}}})
+    .on("broadcast",{event:"mensagem"},async({payload})=>{
+      if(String(payload?.ticket_id)!==String(ticket.id))return;
+      if(!suporteMensagens.some(m=>String(m.id)===String(payload.message_id))){
+        suporteMensagens.push({id:payload.message_id,ticket_id:payload.ticket_id,autor_tipo:payload.autor_tipo,autor_nome:payload.autor_nome,mensagem:payload.mensagem,criado_em:payload.criado_em});
+      }
+      const t=suporteTickets.find(x=>x.id===ticket.id); if(t){t.status=payload.status||t.status;t.nao_lidas_equipe=0;}
+      await SB.cli.rpc("suporte_marcar_lido",{p_ticket_id:ticket.id,p_discord:null,p_codigo:null});
+      if(modo==="painel"&&vista==="suporte") suporteRenderChatEquipe(); renderBar();
+    })
+    .on("broadcast",{event:"ticket"},({payload})=>{const t=suporteTickets.find(x=>x.id===ticket.id);if(t)t.status=payload.status||t.status;if(modo==="painel"&&vista==="suporte")renderSuporte();})
+    .subscribe();
+}
+function suporteMsgsHtml(msgs){
+  if(!msgs.length)return `<div class="support-empty" style="min-height:260px"><div><b>Nenhuma mensagem ainda</b><p>Comece a conversa por aqui.</p></div></div>`;
+  return msgs.map(m=>`<div class="support-msg ${esc(m.autor_tipo)}"><div class="bubble">${esc(m.mensagem)}</div><div class="mmeta">${esc(m.autor_nome||m.autor_tipo)} · ${suporteData(m.criado_em)}</div></div>`).join("");
+}
+async function suporteAbrirEquipe(id){
+  suporteSel=id; const t=suporteTickets.find(x=>x.id===id); if(!t)return;
+  suporteMensagens=[]; renderSuporte(); await suporteCarregarMensagensEquipe(t); renderSuporte();
+}
+function suporteRenderChatEquipe(){
+  const root=$("#viewSuporte"); if(!root||root.hidden)return;
+  const t=suporteTickets.find(x=>x.id===suporteSel), msgBox=root.querySelector(".support-messages");
+  if(msgBox){msgBox.innerHTML=suporteMsgsHtml(suporteMensagens);msgBox.scrollTop=msgBox.scrollHeight;}
+  const st=root.querySelector("[data-sup-status]");if(st&&t)st.innerHTML=suporteStatusHtml(t.status);
+}
+async function suporteEnviarEquipe(t,textarea,btn){
+  const mensagem=textarea.value.trim(); if(!mensagem)return;
+  btn.disabled=true; const {data,error}=await SB.cli.rpc("suporte_enviar_mensagem",{p_ticket_id:t.id,p_mensagem:mensagem,p_discord:null,p_codigo:null}); btn.disabled=false;
+  if(error)return aviso(error.message||"Não deu pra enviar a mensagem");
+  textarea.value=""; const m=(data||[])[0];
+  if(m&&!suporteMensagens.some(x=>String(x.id)===String(m.id)))suporteMensagens.push(m);
+  t.status=m?.status||"aguardando_cliente"; t.nao_lidas_equipe=0; suporteRenderChatEquipe();
+}
+async function suporteMudarStatusEquipe(t,status){
+  const {error}=await SB.cli.rpc("suporte_mudar_status",{p_ticket_id:t.id,p_status:status});
+  if(error)return aviso(error.message||"Não deu pra mudar o status");
+  t.status=status; await suporteCarregarEquipe(true); renderSuporte();
+}
+async function renderSuporte(){
+  const el=$("#viewSuporte"); if(!el)return;
+  if(!suporteCarregado){
+    el.innerHTML=`<div class="empty"><div class="h">Carregando suporte…</div><p>Buscando os atendimentos.</p></div>`;
+    await suporteCarregarEquipe(); if(modo==="painel"&&vista==="suporte") renderSuporte(); return;
+  }
+  const t=suporteTickets.find(x=>x.id===suporteSel);
+  el.innerHTML=`<div class="support-grid">
+    <section class="support-list"><div class="support-list-head"><div><div class="t">Suporte</div><div class="eyebrow">${suporteTickets.filter(x=>x.status!=="fechado").length} atendimento(s) ativo(s)</div></div><button class="btn btn-sm btn-ghost" data-sup-refresh>Atualizar</button></div>
+      <div class="support-list-body">${suporteTickets.length?suporteTickets.map(x=>`<button class="support-ticket ${x.id===suporteSel?"on":""}" data-ticket="${x.id}"><div class="row"><span class="assunto">#${x.numero} · ${esc(x.assunto)}</span>${x.nao_lidas_equipe?`<span class="support-badge">${x.nao_lidas_equipe}</span>`:""}</div><div class="meta"><span>@${esc(x.discord)}</span>${suporteStatusHtml(x.status)}<span>${suporteData(x.ultima_mensagem_em)}</span></div></button>`).join(""):`<div class="empty" style="padding:38px 15px"><div class="h">Nenhum ticket</div><p>Quando um cliente chamar, aparece aqui.</p></div>`}</div></section>
+    ${t?`<section class="support-chat"><div class="support-chat-head"><div><div class="t">#${t.numero} · ${esc(t.assunto)}</div><div class="eyebrow">${esc(t.cliente_nome||t.discord)} · @${esc(t.discord)}</div></div><div style="display:flex;gap:7px;align-items:center"><span data-sup-status>${suporteStatusHtml(t.status)}</span><select class="mono" data-status style="width:auto;padding:7px"><option value="aberto" ${t.status==="aberto"?"selected":""}>Aberto</option><option value="em_atendimento" ${t.status==="em_atendimento"?"selected":""}>Em atendimento</option><option value="aguardando_cliente" ${t.status==="aguardando_cliente"?"selected":""}>Aguardando cliente</option><option value="fechado" ${t.status==="fechado"?"selected":""}>Fechado</option></select></div></div><div class="support-messages">${suporteMsgsHtml(suporteMensagens)}</div><div class="support-compose"><textarea placeholder="Escreva uma resposta…" ${t.status==="fechado"?"disabled":""}></textarea><button class="btn btn-primary" data-enviar ${t.status==="fechado"?"disabled":""}>Enviar</button></div></section>`:`<section class="support-chat"><div class="support-empty"><div><div class="h">Selecione um atendimento</div><p>Abra um ticket da fila para conversar com o cliente.</p></div></div></section>`}
+  </div>`;
+  el.querySelector("[data-sup-refresh]").onclick=async()=>{await suporteCarregarEquipe(true);renderSuporte();};
+  el.querySelectorAll("[data-ticket]").forEach(b=>b.onclick=()=>suporteAbrirEquipe(b.dataset.ticket));
+  if(t){
+    const box=el.querySelector(".support-messages");box.scrollTop=box.scrollHeight;
+    const ta=el.querySelector(".support-compose textarea"), bt=el.querySelector("[data-enviar]");
+    if(bt)bt.onclick=()=>suporteEnviarEquipe(t,ta,bt);
+    if(ta)ta.onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();if(!bt.disabled)bt.click();}};
+    el.querySelector("[data-status]").onchange=e=>suporteMudarStatusEquipe(t,e.target.value);
+    if(!suporteMensagens.length) suporteCarregarMensagensEquipe(t).then(()=>{if(modo==="painel"&&vista==="suporte")suporteRenderChatEquipe();});
+  }
+}
+
+async function suporteClienteCarregarTickets(){
+  if(!SB.cliente)return [];
+  const {data,error}=await SB.cli.rpc("cliente_suporte_tickets",{p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo});
+  if(error){console.error(error);return [];}
+  suporteClienteTickets=data||[]; return suporteClienteTickets;
+}
+async function suporteClienteCarregarMensagens(t){
+  if(!SB.cliente||!t)return;
+  const {data,error}=await SB.cli.rpc("cliente_suporte_mensagens",{p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo,p_ticket_id:t.id});
+  if(error)return aviso("Não deu pra abrir a conversa");
+  suporteClienteMensagens=data||[];
+  await SB.cli.rpc("suporte_marcar_lido",{p_ticket_id:t.id,p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo});
+  t.nao_lidas_cliente=0; suporteClienteAssinar(t);
+}
+function suporteClienteAssinar(t){
+  if(suporteClienteCanal){SB.cli.removeChannel(suporteClienteCanal);suporteClienteCanal=null;}
+  suporteClienteCanal=SB.cli.channel("suporte:"+t.realtime_token,{config:{broadcast:{self:false}}})
+   .on("broadcast",{event:"mensagem"},async({payload})=>{
+     if(String(payload?.ticket_id)!==String(t.id))return;
+     if(!suporteClienteMensagens.some(m=>String(m.id)===String(payload.message_id)))suporteClienteMensagens.push({id:payload.message_id,ticket_id:t.id,autor_tipo:payload.autor_tipo,autor_nome:payload.autor_nome,mensagem:payload.mensagem,criado_em:payload.criado_em});
+     t.status=payload.status||t.status;t.nao_lidas_cliente=0;
+     await SB.cli.rpc("suporte_marcar_lido",{p_ticket_id:t.id,p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo});suporteClienteRenderPainel();
+   })
+   .on("broadcast",{event:"ticket"},({payload})=>{t.status=payload.status||t.status;suporteClienteRenderPainel();}).subscribe();
+}
+async function suporteClienteAbrirTicket(id){
+  suporteClienteSel=id; suporteClienteTela="chat"; const t=suporteClienteTickets.find(x=>x.id===id); suporteClienteMensagens=[]; suporteClienteRenderPainel(); await suporteClienteCarregarMensagens(t); suporteClienteRenderPainel();
+}
+async function suporteClienteEnviar(t,ta,bt){
+  const mensagem=ta.value.trim();if(!mensagem)return;bt.disabled=true;
+  const {data,error}=await SB.cli.rpc("suporte_enviar_mensagem",{p_ticket_id:t.id,p_mensagem:mensagem,p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo});bt.disabled=false;
+  if(error)return aviso(error.message||"Não deu pra enviar");ta.value="";const m=(data||[])[0];if(m&&!suporteClienteMensagens.some(x=>String(x.id)===String(m.id)))suporteClienteMensagens.push(m);t.status=m?.status||"em_atendimento";suporteClienteRenderPainel();
+}
+async function suporteClienteCriar(){
+  const root=document.querySelector(".support-client-panel"), ass=root.querySelector("#supAssunto").value.trim(), msg=root.querySelector("#supMensagem").value.trim(), pedido=root.querySelector("#supPedido").value||null, bt=root.querySelector("[data-criar-ticket]");
+  if(ass.length<3||!msg)return aviso("Preencha o assunto e a mensagem");bt.disabled=true;
+  const {data,error}=await SB.cli.rpc("cliente_suporte_abrir",{p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo,p_assunto:ass,p_mensagem:msg,p_pedido_id:pedido});bt.disabled=false;
+  if(error)return aviso(error.message||"Não deu pra abrir o ticket");await suporteClienteCarregarTickets();const novo=(data||[])[0];aviso("Atendimento #"+(novo?.numero||"")+" aberto");if(novo)suporteClienteAbrirTicket(novo.id);else{suporteClienteTela="lista";suporteClienteRenderPainel();}
+}
+function suporteClienteRenderPainel(){
+  let panel=document.querySelector(".support-client-panel");if(!panel)return;
+  panel.hidden=!suporteClienteAberto;if(!suporteClienteAberto)return;
+  const t=suporteClienteTickets.find(x=>x.id===suporteClienteSel);
+  const header=`<div class="scp-head"><div><b>Suporte Junão Store</b><div class="eyebrow">Atendimento em tempo real</div></div><button class="btn btn-sm btn-ghost" data-fechar-chat>Fechar</button></div>`;
+  let body="";
+  if(suporteClienteTela==="novo"){
+    const opts=(pedidos||[]).map(p=>`<option value="${esc(p.id)}">#${pad(p.numero)} · ${esc(p.titulo)}</option>`).join("");
+    body=`<div class="scp-body support-new"><button class="btn btn-sm btn-ghost" data-sup-voltar>← Voltar</button><h3>Novo atendimento</h3><div class="field"><label class="eyebrow">Assunto</label><input id="supAssunto" maxlength="120" placeholder="Ex.: dúvida sobre a entrega"></div><div class="field"><label class="eyebrow">Pedido relacionado</label><select id="supPedido"><option value="">Nenhum / geral</option>${opts}</select></div><div class="field"><label class="eyebrow">Mensagem</label><textarea id="supMensagem" maxlength="4000" placeholder="Conte o que você precisa…"></textarea></div><button class="btn btn-primary btn-wide" data-criar-ticket>Abrir atendimento</button></div>`;
+  }else if(suporteClienteTela==="chat"&&t){
+    body=`<div class="scp-body" style="display:flex;flex-direction:column;padding:0;overflow:hidden"><div style="padding:11px 13px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:center"><button class="btn btn-sm btn-ghost" data-sup-voltar>←</button><div style="min-width:0;flex:1"><b>#${t.numero} · ${esc(t.assunto)}</b><div>${suporteStatusHtml(t.status)}</div></div></div><div class="support-messages">${suporteMsgsHtml(suporteClienteMensagens)}</div><div class="support-compose"><textarea placeholder="Digite sua mensagem…" ${t.status==="fechado"?"disabled":""}></textarea><button class="btn btn-primary" data-cli-enviar ${t.status==="fechado"?"disabled":""}>Enviar</button></div></div>`;
+  }else{
+    body=`<div class="scp-body"><button class="btn btn-primary btn-wide" data-novo-ticket>+ Abrir novo atendimento</button><div style="height:10px"></div>${suporteClienteTickets.length?suporteClienteTickets.map(x=>`<button class="support-ticket" data-cli-ticket="${x.id}"><div class="row"><span class="assunto">#${x.numero} · ${esc(x.assunto)}</span>${x.nao_lidas_cliente?`<span class="support-badge">${x.nao_lidas_cliente}</span>`:""}</div><div class="meta">${suporteStatusHtml(x.status)}<span>${suporteData(x.ultima_mensagem_em)}</span></div></button>`).join(""):`<div class="empty" style="padding:40px 15px"><div class="h">Sem atendimentos</div><p>Quando precisar falar com a equipe, abra um ticket por aqui.</p></div>`}</div>`;
+  }
+  panel.innerHTML=header+body;
+  panel.querySelector("[data-fechar-chat]").onclick=()=>{suporteClienteAberto=false;suporteClienteRenderPainel();};
+  panel.querySelector("[data-novo-ticket]")?.addEventListener("click",()=>{suporteClienteTela="novo";suporteClienteRenderPainel();});
+  panel.querySelectorAll("[data-cli-ticket]").forEach(b=>b.onclick=()=>suporteClienteAbrirTicket(b.dataset.cliTicket));
+  panel.querySelector("[data-sup-voltar]")?.addEventListener("click",()=>{suporteClienteTela="lista";suporteClienteSel=null;if(suporteClienteCanal){SB.cli.removeChannel(suporteClienteCanal);suporteClienteCanal=null;}suporteClienteRenderPainel();});
+  panel.querySelector("[data-criar-ticket]")?.addEventListener("click",suporteClienteCriar);
+  if(t&&suporteClienteTela==="chat"){
+    const box=panel.querySelector(".support-messages");box.scrollTop=box.scrollHeight;const ta=panel.querySelector(".support-compose textarea"),bt=panel.querySelector("[data-cli-enviar]");if(bt)bt.onclick=()=>suporteClienteEnviar(t,ta,bt);if(ta)ta.onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();bt.click();}};
+  }
+}
+function suporteClienteMontarBotao(){
+  document.querySelectorAll(".support-client-btn,.support-client-panel").forEach(x=>x.remove());
+  if(modo!=="cliente"||!SB.cliente||previa)return;
+  const unread=suporteClienteTickets.reduce((n,t)=>n+(t.nao_lidas_cliente||0),0);
+  const btn=document.createElement("button");btn.className="btn btn-primary support-client-btn";btn.innerHTML=`Suporte${unread?` <span class="support-badge">${unread}</span>`:""}`;document.body.appendChild(btn);
+  const panel=document.createElement("div");panel.className="support-client-panel";panel.hidden=!suporteClienteAberto;document.body.appendChild(panel);
+  btn.onclick=async()=>{suporteClienteAberto=!suporteClienteAberto;if(suporteClienteAberto){await suporteClienteCarregarTickets();suporteClienteTela=suporteClienteSel?"chat":"lista";}suporteClienteRenderPainel();};
+  suporteClienteRenderPainel();
+}
+
+// Mantém a área do cliente original e acrescenta o suporte sem mexer no fluxo dos pedidos.
+const renderAreaSemSuporte=renderArea;
+renderArea=function(){renderAreaSemSuporte();setTimeout(suporteClienteMontarBotao,0);};
+
 
 /* ============================================================
    INÍCIO
