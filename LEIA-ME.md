@@ -83,7 +83,7 @@ desta pasta e depois cadastre as três variáveis com `vercel env add`.
 
 Com `OWNER_PASSWORD` configurada na Vercel, a primeira abertura do site chama
 `/api/bootstrap-owner` e prepara automaticamente a conta principal do dono no
-Supabase Auth. O e-mail já vem configurado como `junaoyt@gmail.com` e o perfil é
+Supabase Auth. A conta do dono é configurada no servidor como `junaoyt@gmail.com` e o perfil é
 marcado como **dono**, ativo e com acesso total.
 
 1. Abra o endereço que a Vercel te deu.
