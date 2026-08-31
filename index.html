@@ -1508,22 +1508,40 @@ function avisoBanco(e){
 
 /* ---------- ligar no Supabase ---------- */
 async function iniciarSupabase(){
-  let cfg=null;
+  let cfg=null, detalhe="";
   try{
-    const r=await fetch("/api/config",{cache:"no-store"});
-    if(r.ok) cfg=await r.json();
-  }catch(e){}
+    // O parâmetro evita resposta antiga de cache em proxies/CDNs.
+    const r=await fetch("/api/config?t="+Date.now(),{cache:"no-store"});
+    const txt=await r.text();
+    let corpo=null;
+    try{ corpo=txt?JSON.parse(txt):null; }catch(e){}
+    if(r.ok && corpo) cfg=corpo;
+    else{
+      const msg=corpo&&(corpo.mensagem||corpo.erro);
+      const faltando=corpo&&Array.isArray(corpo.faltando)?" Faltando: "+corpo.faltando.join(", ")+".":"";
+      detalhe="/api/config respondeu HTTP "+r.status+(msg?" — "+msg:"")+faltando;
+    }
+  }catch(e){
+    detalhe="Não foi possível abrir /api/config — "+String((e&&e.message)||e||"erro de rede");
+  }
   if(!cfg||!cfg.url||!cfg.anonKey) cfg=window.SUPABASE_CONFIG||null;
 
   if(!cfg||!cfg.url||!cfg.anonKey){
-    document.body.innerHTML='<div style="max-width:520px;margin:80px auto;padding:26px;'+
+    const d=detalhe||"A configuração pública do Supabase não chegou ao navegador.";
+    document.body.innerHTML='<div style="max-width:620px;margin:80px auto;padding:26px;'+
       'font-family:system-ui,sans-serif;color:#F2EEE2;background:#15130D;border:1px solid #3B3220;'+
       'border-radius:4px;line-height:1.6">'+
       '<h2 style="font-size:19px;margin-bottom:10px">Falta configurar o banco</h2>'+
       '<p style="color:#A2977E;font-size:14px">Abra o projeto na Vercel, vá em '+
-      '<b>Settings &rarr; Environment Variables</b> e cadastre <b>SUPABASE_URL</b> e '+
-      '<b>SUPABASE_ANON_KEY</b>. Depois faça um novo deploy (Deployments &rarr; Redeploy).</p></div>';
-    throw new Error("sem configuração do Supabase");
+      '<b>Settings &rarr; Environment Variables</b> e confirme <b>SUPABASE_URL</b> e '+
+      '<b>SUPABASE_ANON_KEY</b> para <b>Production</b>. Depois faça um novo deploy.</p>'+
+      '<div style="margin-top:14px;padding:12px;background:#0D0C09;border:1px solid #3B3220;'+
+      'font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;color:#D7CBAE;word-break:break-word">'+
+      d.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")+"</div>"+
+      '<p style="color:#7F765F;font-size:12px;margin-top:12px">Dica: abra também <b>/api/config</b> no navegador. '+
+      'Se aparecer 404, a pasta <b>api</b> não está sendo publicada; se aparecer HTTP 500 com “Faltando”, '+
+      'as variáveis não estão chegando ao deployment de produção.</p></div>';
+    throw new Error("sem configuração do Supabase: "+d);
   }
 
   SB.cli = window.supabase.createClient(cfg.url, cfg.anonKey, {

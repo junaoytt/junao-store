@@ -1,26 +1,48 @@
 // ============================================================================
 // /api/config
 //
-// Entrega pro site o endereço do Supabase e a chave pública (anon).
-// Assim você configura tudo no painel da Vercel, sem mexer em arquivo.
-//
-// A chave "anon" é pública de propósito — ela sozinha não abre nada, porque
-// as regras de segurança (RLS) do banco exigem login. A chave que NÃO pode
-// aparecer aqui é a service_role.
+// Entrega ao navegador somente a configuração pública do Supabase.
+// A service_role/secret key NUNCA é enviada por este endpoint.
 // ============================================================================
 
+function primeira(...valores) {
+  for (const valor of valores) {
+    if (typeof valor === "string" && valor.trim()) return valor.trim();
+  }
+  return "";
+}
+
 module.exports = (req, res) => {
-  const url = process.env.SUPABASE_URL || "";
-  const anonKey = process.env.SUPABASE_ANON_KEY || "";
+  // Aceita os nomes usados pelo projeto e também nomes comuns de Vite/Next,
+  // para evitar que uma variável já cadastrada na Vercel seja ignorada.
+  const url = primeira(
+    process.env.SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.VITE_SUPABASE_URL
+  );
 
-  res.setHeader("Cache-Control", "public, max-age=60, s-maxage=300");
+  const anonKey = primeira(
+    process.env.SUPABASE_ANON_KEY,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    process.env.VITE_SUPABASE_ANON_KEY,
+    process.env.SUPABASE_PUBLISHABLE_KEY
+  );
 
-  if (!url || !anonKey) {
+  // Não deixe um erro antigo de configuração preso no cache da Vercel/CDN.
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+
+  const faltando = [];
+  if (!url) faltando.push("SUPABASE_URL");
+  if (!anonKey) faltando.push("SUPABASE_ANON_KEY");
+
+  if (faltando.length) {
     return res.status(500).json({
       erro: "faltando_config",
+      faltando,
       mensagem:
-        "Faltam as variáveis SUPABASE_URL e SUPABASE_ANON_KEY nas " +
-        "configurações do projeto na Vercel.",
+        "A função /api/config foi encontrada, mas a Vercel não entregou " +
+        "as variáveis de ambiente necessárias para este deployment.",
     });
   }
 
