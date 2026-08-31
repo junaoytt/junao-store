@@ -1,1 +1,7 @@
-{"name":"junao-store-painel","version":"1.0.0","private":true,"type":"module","scripts":{"dev":"vercel dev","deploy":"vercel"},"engines":{"node":">=20"}}
+{
+  "name": "junao-store-gestao",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Painel de gestão da Junão Store — pedidos, orçamentos, funil e financeiro",
+  "engines": { "node": ">=18" }
+}
