@@ -853,11 +853,12 @@ input[type=number]{-moz-appearance:textfield}
 .support-compose{padding:12px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:flex-end}
 .support-compose textarea{min-height:44px;max-height:130px;resize:vertical;flex:1}
 .support-empty{display:grid;place-items:center;min-height:560px;color:var(--dim);text-align:center;padding:30px}
-.support-client-btn{position:fixed;right:22px;bottom:22px;z-index:70;border-radius:999px;box-shadow:0 12px 38px rgba(0,0,0,.35)}
+.support-client-entry{margin:0 0 14px;border:1px solid rgba(215,175,92,.34);background:linear-gradient(135deg,rgba(215,175,92,.09),rgba(255,255,255,.018));border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:14px}.support-client-entry .sce-copy{min-width:0}.support-client-entry .sce-copy b{display:block;font-family:"Archivo",sans-serif;font-size:15px;margin-bottom:3px}.support-client-entry .sce-copy span{font-size:12px;color:var(--muted)}.support-client-entry .btn{flex:none}
+.support-client-btn{border-radius:999px;box-shadow:0 8px 25px rgba(0,0,0,.28)}
 .support-client-panel{position:fixed;right:22px;bottom:78px;z-index:75;width:min(430px,calc(100vw - 28px));height:min(650px,calc(100vh - 115px));border:1px solid var(--line2);border-radius:16px;background:var(--ink);box-shadow:0 22px 80px rgba(0,0,0,.55);display:flex;flex-direction:column;overflow:hidden}
 .support-client-panel[hidden]{display:none}.support-client-panel .scp-head{padding:14px 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}.support-client-panel .scp-body{flex:1;min-height:0;overflow:auto;padding:12px}.support-client-panel .support-messages{height:100%;min-height:300px}.support-new textarea{min-height:110px}
 @media(max-width:850px){.support-grid{grid-template-columns:1fr}.support-list-body{max-height:260px}.support-messages{height:420px}.support-empty{min-height:300px}}
-@media(max-width:540px){.support-client-btn{right:14px;bottom:14px}.support-client-panel{right:14px;bottom:68px;height:calc(100vh - 90px)}.support-msg{max-width:90%}}
+@media(max-width:540px){.support-client-entry{align-items:flex-start;flex-direction:column}.support-client-entry .btn{width:100%}.support-client-panel{right:14px;bottom:14px;height:calc(100vh - 28px)}.support-msg{max-width:90%}}
 
 </style>
 
@@ -1325,7 +1326,7 @@ const rotulo = p => p.estado==="cancelado" ? "Cancelado" : p.estado==="pausado" 
        conseguir filtrar e ordenar direto no painel do Supabase
      - imagens dos anexos                -> Storage do Supabase, não no banco
    ============================================================ */
-const SB = { cli:null, cache:{}, cacheAnx:{}, cliente:null, dadosCliente:null };
+const SB = { cli:null, publicCli:null, cache:{}, cacheAnx:{}, cliente:null, dadosCliente:null };
 
 const nOuNulo = v => (v===""||v===null||v===undefined||isNaN(Number(v))) ? null : Number(v);
 const tOuNulo = v => (v===""||v===null||v===undefined) ? null : String(v);
@@ -1585,6 +1586,12 @@ async function iniciarSupabase(){
 
   SB.cli = window.supabase.createClient(cfg.url, cfg.anonKey, {
     auth:{persistSession:true, autoRefreshToken:true, storageKey:"junao.auth"}
+  });
+  // Cliente usa uma conexão anônima separada. Assim uma sessão de colaborador
+  // nunca interfere no login por Discord + código nem nas RPCs do suporte.
+  SB.publicCli = window.supabase.createClient(cfg.url, cfg.anonKey, {
+    auth:{persistSession:false, autoRefreshToken:false, detectSessionInUrl:false},
+    realtime:{params:{eventsPerSecond:10}}
   });
   return SB.cli;
 }
@@ -4670,6 +4677,9 @@ async function carregarTudo(){
   colaboradores=(await DB.get(K_COL))||[];
   anexos={};
   await migrar();
+  // Já carrega a fila de suporte em segundo plano para o contador de não lidas
+  // aparecer mesmo antes de abrir a aba Suporte.
+  if(usuario) suporteCarregarEquipe(true).then(()=>renderBar()).catch(()=>{});
 }
 
 function traduzAuth(e){
@@ -5239,6 +5249,7 @@ let suporteTickets=[], suporteSel=null, suporteMensagens=[];
 let suporteCarregado=false, suporteCarregando=false, suporteListaCanal=null, suporteChatCanal=null;
 let suporteClienteAberto=false, suporteClienteSel=null, suporteClienteTickets=[], suporteClienteMensagens=[];
 let suporteClienteCanal=null, suporteClienteTela="lista";
+let suporteEquipePoll=null, suporteClientePoll=null;
 
 const suporteStatusRotulo=s=>({aberto:"Aberto",em_atendimento:"Em atendimento",aguardando_cliente:"Aguardando cliente",fechado:"Fechado"}[s]||s);
 const suporteData=x=>{try{return new Intl.DateTimeFormat("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date(x));}catch(e){return "";}};
@@ -5268,7 +5279,7 @@ async function suporteCarregarMensagensEquipe(ticket){
   const {data,error}=await SB.cli.from("suporte_mensagens").select("id,ticket_id,autor_tipo,autor_nome,mensagem,criado_em").eq("ticket_id",ticket.id).order("criado_em",{ascending:true}).order("id",{ascending:true});
   if(error){console.error(error);return aviso("Não deu pra carregar as mensagens");}
   suporteMensagens=data||[];
-  await SB.cli.rpc("suporte_marcar_lido",{p_ticket_id:ticket.id,p_discord:null,p_codigo:null});
+  await SB.cli.rpc("equipe_suporte_marcar_lido",{p_ticket_id:ticket.id});
   ticket.nao_lidas_equipe=0;
   suporteAssinarChatEquipe(ticket);
 }
@@ -5282,7 +5293,7 @@ function suporteAssinarChatEquipe(ticket){
         suporteMensagens.push({id:payload.message_id,ticket_id:payload.ticket_id,autor_tipo:payload.autor_tipo,autor_nome:payload.autor_nome,mensagem:payload.mensagem,criado_em:payload.criado_em});
       }
       const t=suporteTickets.find(x=>x.id===ticket.id); if(t){t.status=payload.status||t.status;t.nao_lidas_equipe=0;}
-      await SB.cli.rpc("suporte_marcar_lido",{p_ticket_id:ticket.id,p_discord:null,p_codigo:null});
+      await SB.cli.rpc("equipe_suporte_marcar_lido",{p_ticket_id:ticket.id});
       if(modo==="painel"&&vista==="suporte") suporteRenderChatEquipe(); renderBar();
     })
     .on("broadcast",{event:"ticket"},({payload})=>{const t=suporteTickets.find(x=>x.id===ticket.id);if(t)t.status=payload.status||t.status;if(modo==="painel"&&vista==="suporte")renderSuporte();})
@@ -5304,7 +5315,7 @@ function suporteRenderChatEquipe(){
 }
 async function suporteEnviarEquipe(t,textarea,btn){
   const mensagem=textarea.value.trim(); if(!mensagem)return;
-  btn.disabled=true; const {data,error}=await SB.cli.rpc("suporte_enviar_mensagem",{p_ticket_id:t.id,p_mensagem:mensagem,p_discord:null,p_codigo:null}); btn.disabled=false;
+  btn.disabled=true; const {data,error}=await SB.cli.rpc("equipe_suporte_enviar",{p_ticket_id:t.id,p_mensagem:mensagem}); btn.disabled=false;
   if(error)return aviso(error.message||"Não deu pra enviar a mensagem");
   textarea.value=""; const m=(data||[])[0];
   if(m&&!suporteMensagens.some(x=>String(x.id)===String(m.id)))suporteMensagens.push(m);
@@ -5317,6 +5328,7 @@ async function suporteMudarStatusEquipe(t,status){
 }
 async function renderSuporte(){
   const el=$("#viewSuporte"); if(!el)return;
+  suporteEquipeIniciarFallback();
   if(!suporteCarregado){
     el.innerHTML=`<div class="empty"><div class="h">Carregando suporte…</div><p>Buscando os atendimentos.</p></div>`;
     await suporteCarregarEquipe(); if(modo==="painel"&&vista==="suporte") renderSuporte(); return;
@@ -5341,26 +5353,29 @@ async function renderSuporte(){
 
 async function suporteClienteCarregarTickets(){
   if(!SB.cliente)return [];
-  const {data,error}=await SB.cli.rpc("cliente_suporte_tickets",{p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo});
+  const cli=SB.publicCli||SB.cli;
+  const {data,error}=await cli.rpc("cliente_suporte_tickets",{p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo});
   if(error){console.error(error);return [];}
   suporteClienteTickets=data||[]; return suporteClienteTickets;
 }
 async function suporteClienteCarregarMensagens(t){
   if(!SB.cliente||!t)return;
-  const {data,error}=await SB.cli.rpc("cliente_suporte_mensagens",{p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo,p_ticket_id:t.id});
+  const cli=SB.publicCli||SB.cli;
+  const {data,error}=await cli.rpc("cliente_suporte_mensagens",{p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo,p_ticket_id:t.id});
   if(error)return aviso("Não deu pra abrir a conversa");
   suporteClienteMensagens=data||[];
-  await SB.cli.rpc("suporte_marcar_lido",{p_ticket_id:t.id,p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo});
+  await cli.rpc("cliente_suporte_marcar_lido",{p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo,p_ticket_id:t.id});
   t.nao_lidas_cliente=0; suporteClienteAssinar(t);
 }
 function suporteClienteAssinar(t){
-  if(suporteClienteCanal){SB.cli.removeChannel(suporteClienteCanal);suporteClienteCanal=null;}
-  suporteClienteCanal=SB.cli.channel("suporte:"+t.realtime_token,{config:{broadcast:{self:false}}})
+  const cli=SB.publicCli||SB.cli;
+  if(suporteClienteCanal){cli.removeChannel(suporteClienteCanal);suporteClienteCanal=null;}
+  suporteClienteCanal=cli.channel("suporte:"+t.realtime_token,{config:{broadcast:{self:false}}})
    .on("broadcast",{event:"mensagem"},async({payload})=>{
      if(String(payload?.ticket_id)!==String(t.id))return;
      if(!suporteClienteMensagens.some(m=>String(m.id)===String(payload.message_id)))suporteClienteMensagens.push({id:payload.message_id,ticket_id:t.id,autor_tipo:payload.autor_tipo,autor_nome:payload.autor_nome,mensagem:payload.mensagem,criado_em:payload.criado_em});
      t.status=payload.status||t.status;t.nao_lidas_cliente=0;
-     await SB.cli.rpc("suporte_marcar_lido",{p_ticket_id:t.id,p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo});suporteClienteRenderPainel();
+     await cli.rpc("cliente_suporte_marcar_lido",{p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo,p_ticket_id:t.id});suporteClienteRenderPainel();
    })
    .on("broadcast",{event:"ticket"},({payload})=>{t.status=payload.status||t.status;suporteClienteRenderPainel();}).subscribe();
 }
@@ -5369,13 +5384,15 @@ async function suporteClienteAbrirTicket(id){
 }
 async function suporteClienteEnviar(t,ta,bt){
   const mensagem=ta.value.trim();if(!mensagem)return;bt.disabled=true;
-  const {data,error}=await SB.cli.rpc("suporte_enviar_mensagem",{p_ticket_id:t.id,p_mensagem:mensagem,p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo});bt.disabled=false;
+  const cli=SB.publicCli||SB.cli;
+  const {data,error}=await cli.rpc("cliente_suporte_enviar",{p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo,p_ticket_id:t.id,p_mensagem:mensagem});bt.disabled=false;
   if(error)return aviso(error.message||"Não deu pra enviar");ta.value="";const m=(data||[])[0];if(m&&!suporteClienteMensagens.some(x=>String(x.id)===String(m.id)))suporteClienteMensagens.push(m);t.status=m?.status||"em_atendimento";suporteClienteRenderPainel();
 }
 async function suporteClienteCriar(){
   const root=document.querySelector(".support-client-panel"), ass=root.querySelector("#supAssunto").value.trim(), msg=root.querySelector("#supMensagem").value.trim(), pedido=root.querySelector("#supPedido").value||null, bt=root.querySelector("[data-criar-ticket]");
   if(ass.length<3||!msg)return aviso("Preencha o assunto e a mensagem");bt.disabled=true;
-  const {data,error}=await SB.cli.rpc("cliente_suporte_abrir",{p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo,p_assunto:ass,p_mensagem:msg,p_pedido_id:pedido});bt.disabled=false;
+  const cli=SB.publicCli||SB.cli;
+  const {data,error}=await cli.rpc("cliente_suporte_abrir",{p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo,p_assunto:ass,p_mensagem:msg,p_pedido_id:pedido});bt.disabled=false;
   if(error)return aviso(error.message||"Não deu pra abrir o ticket");await suporteClienteCarregarTickets();const novo=(data||[])[0];aviso("Atendimento #"+(novo?.numero||"")+" aberto");if(novo)suporteClienteAbrirTicket(novo.id);else{suporteClienteTela="lista";suporteClienteRenderPainel();}
 }
 function suporteClienteRenderPainel(){
@@ -5396,26 +5413,68 @@ function suporteClienteRenderPainel(){
   panel.querySelector("[data-fechar-chat]").onclick=()=>{suporteClienteAberto=false;suporteClienteRenderPainel();};
   panel.querySelector("[data-novo-ticket]")?.addEventListener("click",()=>{suporteClienteTela="novo";suporteClienteRenderPainel();});
   panel.querySelectorAll("[data-cli-ticket]").forEach(b=>b.onclick=()=>suporteClienteAbrirTicket(b.dataset.cliTicket));
-  panel.querySelector("[data-sup-voltar]")?.addEventListener("click",()=>{suporteClienteTela="lista";suporteClienteSel=null;if(suporteClienteCanal){SB.cli.removeChannel(suporteClienteCanal);suporteClienteCanal=null;}suporteClienteRenderPainel();});
+  panel.querySelector("[data-sup-voltar]")?.addEventListener("click",()=>{suporteClienteTela="lista";suporteClienteSel=null;if(suporteClienteCanal){(SB.publicCli||SB.cli).removeChannel(suporteClienteCanal);suporteClienteCanal=null;}suporteClienteRenderPainel();});
   panel.querySelector("[data-criar-ticket]")?.addEventListener("click",suporteClienteCriar);
   if(t&&suporteClienteTela==="chat"){
     const box=panel.querySelector(".support-messages");box.scrollTop=box.scrollHeight;const ta=panel.querySelector(".support-compose textarea"),bt=panel.querySelector("[data-cli-enviar]");if(bt)bt.onclick=()=>suporteClienteEnviar(t,ta,bt);if(ta)ta.onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();bt.click();}};
   }
 }
-function suporteClienteMontarBotao(){
-  document.querySelectorAll(".support-client-btn,.support-client-panel").forEach(x=>x.remove());
-  if(modo!=="cliente"||!SB.cliente||previa)return;
+function suporteClienteIniciarFallback(){
+  if(suporteClientePoll)return;
+  suporteClientePoll=setInterval(async()=>{
+    if(modoAtual()!=="cliente"||!SB.cliente)return;
+    try{
+      await suporteClienteCarregarTickets();
+      suporteClienteAtualizarEntrada();
+      if(!suporteClienteAberto)return;
+      const t=suporteClienteTickets.find(x=>x.id===suporteClienteSel);
+      if(t&&suporteClienteTela==="chat"){
+        const cli=SB.publicCli||SB.cli;
+        const {data}=await cli.rpc("cliente_suporte_mensagens",{p_discord:SB.cliente.discord,p_codigo:SB.cliente.codigo,p_ticket_id:t.id});
+        if(data) suporteClienteMensagens=data;
+      }
+      suporteClienteRenderPainel();
+    }catch(e){}
+  },6000);
+}
+function suporteEquipeIniciarFallback(){
+  if(suporteEquipePoll)return;
+  suporteEquipePoll=setInterval(async()=>{
+    if(modoAtual()!=="painel"||vista!=="suporte"||!usuario)return;
+    try{
+      await suporteCarregarEquipe(true);
+      const t=suporteTickets.find(x=>x.id===suporteSel);
+      if(t){
+        const {data}=await SB.cli.from("suporte_mensagens").select("id,ticket_id,autor_tipo,autor_nome,mensagem,criado_em").eq("ticket_id",t.id).order("criado_em",{ascending:true}).order("id",{ascending:true});
+        if(data) suporteMensagens=data;
+      }
+      if(vista==="suporte") renderSuporte();
+    }catch(e){}
+  },4000);
+}
+function suporteClienteAtualizarEntrada(){
+  const entry=document.querySelector(".support-client-entry"); if(!entry)return;
   const unread=suporteClienteTickets.reduce((n,t)=>n+(t.nao_lidas_cliente||0),0);
-  const btn=document.createElement("button");btn.className="btn btn-primary support-client-btn";btn.innerHTML=`Suporte${unread?` <span class="support-badge">${unread}</span>`:""}`;document.body.appendChild(btn);
+  const b=entry.querySelector("[data-open-support]");
+  if(b)b.innerHTML=`Falar com o suporte${unread?` <span class="support-badge">${unread}</span>`:""}`;
+}
+function suporteClienteMontarBotao(){
+  document.querySelectorAll(".support-client-entry,.support-client-panel").forEach(x=>x.remove());
+  if(modoAtual()!=="cliente"||!SB.cliente||previa)return;
+  const area=$("#viewArea"); if(!area)return;
+  const unread=suporteClienteTickets.reduce((n,t)=>n+(t.nao_lidas_cliente||0),0);
+  const entry=document.createElement("div"); entry.className="support-client-entry";
+  entry.innerHTML=`<div class="sce-copy"><b>Precisa falar com a equipe?</b><span>Abra um atendimento ou continue uma conversa existente. As mensagens ficam salvas.</span></div><button class="btn btn-primary support-client-btn" data-open-support>Falar com o suporte${unread?` <span class="support-badge">${unread}</span>`:""}</button>`;
+  area.prepend(entry);
   const panel=document.createElement("div");panel.className="support-client-panel";panel.hidden=!suporteClienteAberto;document.body.appendChild(panel);
-  btn.onclick=async()=>{suporteClienteAberto=!suporteClienteAberto;if(suporteClienteAberto){await suporteClienteCarregarTickets();suporteClienteTela=suporteClienteSel?"chat":"lista";}suporteClienteRenderPainel();};
+  entry.querySelector("[data-open-support]").onclick=async()=>{suporteClienteAberto=true;await suporteClienteCarregarTickets();suporteClienteTela=suporteClienteSel?"chat":"lista";suporteClienteRenderPainel();suporteClienteIniciarFallback();};
   suporteClienteRenderPainel();
+  suporteClienteIniciarFallback();
 }
 
-// Mantém a área do cliente original e acrescenta o suporte sem mexer no fluxo dos pedidos.
+// Mantém a área do cliente original e acrescenta o suporte como parte nativa da página.
 const renderAreaSemSuporte=renderArea;
-renderArea=function(){renderAreaSemSuporte();setTimeout(suporteClienteMontarBotao,0);};
-
+renderArea=function(){renderAreaSemSuporte();suporteClienteMontarBotao();};
 
 /* ============================================================
    INÍCIO
