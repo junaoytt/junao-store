@@ -5048,7 +5048,7 @@ function render(){
   atualizarCabecalho();
   renderBar();
   const mapa={visao:"viewVisao",orcamentos:"viewOrcamentos",pedidos:"viewPedidos",funil:"viewFunil",
-              clientes:"viewClientes",financeiro:"viewFinanceiro",relatorios:"viewRelatorios"};
+              clientes:"viewClientes",financeiro:"viewFinanceiro",relatorios:"viewRelatorios",suporte:"viewSuporte"};
   for(const k in mapa) $("#"+mapa[k]).hidden = !(modo==="painel"&&vista===k);
   $("#viewArea").hidden   = modo!=="cliente";
   $("#viewPortao").hidden = modo!=="portao";
